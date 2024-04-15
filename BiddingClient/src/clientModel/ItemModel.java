@@ -11,17 +11,16 @@ import clientCore.Item;
 public class ItemModel  extends AbstractTableModel{
 	
 	public static final int OBJECT_COL = -1;
-//	private static final int SYMBOL    = 0;
-//	private static final int PRICE     = 1;
-//	private static final int PROFIT    = 2;
+	private static final int SYMBOL    = 0;
+	private static final int PRICE     = 1;
+	private static final int PROFIT    = 2;
 	
-//	private String[] colName = {"Symbol", "Price", "Profit"};
-	private String[] colName;
+	private String[] colName = {"Symbol", "Price", "Profit"};
+	
 	private List<Item> symWithD;
 	
-	public ItemModel(List<Item> theSymWithD, String[] colName) {
+	public ItemModel(List<Item> theSymWithD) {
 		symWithD = theSymWithD;
-		this.colName = colName;
 		//System.out.println(theSymWithD);
 	}
 	
@@ -46,11 +45,11 @@ public class ItemModel  extends AbstractTableModel{
 		Item tmpItem = symWithD.get(row);
 		
 		switch (col) {
-		case 0:
+		case SYMBOL:
 			return tmpItem.getSym();
-		case 1:
+		case PRICE:
 			return tmpItem.getPrice();
-		case 2:
+		case PROFIT:
 			return tmpItem.getProfit();
 		case OBJECT_COL:
 			return tmpItem;

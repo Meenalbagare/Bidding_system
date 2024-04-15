@@ -140,8 +140,7 @@ public class CompanyActionGUI extends JFrame {
 							// create table if valid symbol
 							if(!tmpItm.getSym().equals("Empty")) {
 								chkItmLst.add(tmpItm);
-								String[] columnNames = {"Symbol", "Price", "Profit"};
-								ItemModel chkItmmodl  = new ItemModel(chkItmLst,columnNames);
+								ItemModel chkItmmodl = new ItemModel(chkItmLst);
 								table_1.setModel(chkItmmodl);
 							}
 							else {
@@ -453,24 +452,21 @@ public class CompanyActionGUI extends JFrame {
 	public synchronized void createITMTablemodel(Socket pSoc) {
 		
 		itmlst = comSubL.getAlrdySubItemWithDitail(pSoc, uName); // get already subscribed Symbol list with it's details from server
-		String[] columnNames = {"Symbol", "Price", "Profit"};
-		itmmodl = new ItemModel(itmlst,columnNames);
+		itmmodl = new ItemModel(itmlst);
 		setSubTable(itmmodl);
 	}
 	
 	// update table for price update
 	public void createPUpdateTable(String sym, String npr) {
 		List<Item> itLst = comSubL.getPriceUpdateItemWithD(sym, npr);
-		String[] columnNames = {"Symbol", "Price", "Profit"};
-		ItemModel tl = new ItemModel(itLst,columnNames);
+		ItemModel tl = new ItemModel(itLst);
 		setSubTable(tl);
 	}
 	
 	// update table for profit update
 	public void createProUpdateTable(String sym, String npro) {
 		List<Item> itLst = comSubL.getProfitUpdateItemWithD(sym, npro);
-		String[] columnNames = {"Symbol", "Price", "Profit"};
-		ItemModel tl = new ItemModel(itLst,columnNames);
+		ItemModel tl = new ItemModel(itLst);
 		setSubTable(tl);
 	}
 	

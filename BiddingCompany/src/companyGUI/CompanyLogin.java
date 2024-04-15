@@ -64,10 +64,12 @@ public class CompanyLogin extends JFrame {
 	private DataInputStream in = null;
 	private ComMsg commsg = null;
 	private int subPort;            // for subscriber port number 
-	private ComConn comcon = null;  // to create company side subscriber socket
+	
+	private ComConn conCon = null;  // to create company side subscriber socket
 	private String serIp;           // IP address
 	private boolean substat = true; // to check subscriber connection
 	private Connection rsConn;
+	
 	/**
 	 * Create the frame.
 	 */
@@ -85,7 +87,7 @@ public class CompanyLogin extends JFrame {
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
-		
+		conCon = new ComConn(); // Instantiate ComConn through the Connection interface
 		setResizable(false);
 		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		setBounds(100, 100, 450, 220);
@@ -261,15 +263,17 @@ public class CompanyLogin extends JFrame {
 		
 		try {
 			System.out.printf("%s : [%d] Subscriber connection created\n", time(), sPort);
+			conCon.connect(ip, sPort);
 //			comcon = new ComConn(ip, sPort); 
-			this.rsConn=rsConn;// call to subCon to set connection
+//			this.rsConn=rsConn;// call to subCon to set connection
+//			conCon.connect(ip, sPort);
 		}
 		catch(Exception ex) {
 			System.out.printf("%s :  Cannot create the subscriber connection (IP:%s, Port:%d)\n", time(), ip, sPort);
 			substat = false;
 		}
 		
-		subs = comcon.getSocket(); // get created socket
+		subs=conCon.getSocket(); // get created socket
 		
 		return subs;
 	}

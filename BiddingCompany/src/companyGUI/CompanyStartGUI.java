@@ -97,7 +97,8 @@ public class CompanyStartGUI extends JFrame {
 		JButton okbtnNewButton = new JButton("OK");
 		okbtnNewButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				
+				ComConn conCon = new ComConn();
+
 				// check Empty Fields
 				if(!(iptextField.getText().isBlank() || porttextField.getText().isBlank() || subPorttextField.getText().isBlank())) {
 					//check, Port numbers are valid Integer
