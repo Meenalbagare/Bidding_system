@@ -11,7 +11,7 @@ public class ComMsg {
 	
 	// send message through given port
 	public void sentThSocket(Socket s, String str) {
-		
+			
 		DataOutputStream out = null;
 			
 		try {

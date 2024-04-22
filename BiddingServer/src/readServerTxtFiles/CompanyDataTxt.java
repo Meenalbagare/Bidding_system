@@ -7,7 +7,7 @@ import java.util.Scanner;
 
 public class CompanyDataTxt {
 	
-	private String fpath = "txtFiles\\companyDataTxt.txt";
+	private String fpath = "txtFiles/companyDataTxt.txt";
 	
 	// call to add a new user or confirm the current user identity
 	// if val3 = 1 confirm user - dealWithCompanyTxt(user name, password, 1)

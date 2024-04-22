@@ -264,9 +264,6 @@ public class CompanyLogin extends JFrame {
 		try {
 			System.out.printf("%s : [%d] Subscriber connection created\n", time(), sPort);
 			conCon.connect(ip, sPort);
-//			comcon = new ComConn(ip, sPort); 
-//			this.rsConn=rsConn;// call to subCon to set connection
-//			conCon.connect(ip, sPort);
 		}
 		catch(Exception ex) {
 			System.out.printf("%s :  Cannot create the subscriber connection (IP:%s, Port:%d)\n", time(), ip, sPort);

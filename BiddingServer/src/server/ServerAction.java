@@ -4,23 +4,70 @@ import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import csv.ReadCsv;
 import msgHadle.Msg;
 import readServerTxtFiles.PersonSubItem;
 import serverCore.Item;
+import serverGui.ServerRunningGUI;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 public class ServerAction {
 	
 	private DataInputStream in = null;
 	private Msg msg = new Msg();
 	private ReadCsv readcsv = new ReadCsv(1);
 	private PersonSubItem persubob = new PersonSubItem();
+	private static final String url = "jdbc:postgresql://localhost:5432/test";
+	private static final String user = "postgres";
+	private static final String password = "1234";
+	ServerTimerRunnable stro = new ServerTimerRunnable();
 	
+	// if this is true a bid can be done, else bidding time is finished
+	private static boolean biddStat = true; 
+	private static ServerRunningGUI srg;
+	
+	// to store and map CSV file data and mapping them with symbol
+	// Hash table used to thread safety
+	private Map<String, String> symPwdMap = new HashMap<>();
+	  private Map<String, Float> symBidMap = new HashMap<>();
+	  private Map<String, Integer> symFunMap = new HashMap<>();
+	  private Map<String, String> symCusMap = new HashMap<>(); // May not be used in this version
+	  private Map<String, String> symhBidTim = new HashMap<>(); //Symbol with highest Bid Time
+	
+	private void loadDataFromDatabase() {
+        try (Connection con = DriverManager.getConnection(url, user, password)) {
+            String sql = "SELECT \"Symbol\", \"Price\" FROM stocks";
+            PreparedStatement stmt = con.prepareStatement(sql);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                String symbol = rs.getString("Symbol");
+                float price = rs.getFloat("Price");
+
+                
+                symBidMap.put(symbol, price);
+                
+            }
+        } catch (Exception e) {
+            System.out.printf("%s : Cannot read the csv file \n", time());
+        }
+    }
 	/*
 	 *  SRS  - client request from server to get Symbol list from server                  (Client  send)
 	 *  SRSY - ask the client/company to ready to get the list                            (Server  send)
@@ -56,6 +103,7 @@ public class ServerAction {
 	
 	// receive about service type from client and return
 	public String typOfSevese(Socket s) {
+		loadDataFromDatabase();
 		
 		String sTyp = null;
 		
@@ -72,6 +120,7 @@ public class ServerAction {
 	
 	// ask the service  request 
 	public int proformServese(Socket s, String flg) {
+		loadDataFromDatabase();
 		
 		int flag = 0;
 		
@@ -96,7 +145,7 @@ public class ServerAction {
 	
 	// send Symbol list to client and return 1 if end function 
 	public int releseSubList(Socket s) {
-		
+		loadDataFromDatabase();
 		int subLstReFlag = 0;
 		
 		try {
@@ -126,7 +175,7 @@ public class ServerAction {
 	
 	// get symbol list
 	private List<String> getSymList() {
-		
+		loadDataFromDatabase();
 		List<String> sym = readcsv.getkeySymList(); // get key set of symbols
 		
 		return sym;
@@ -134,7 +183,7 @@ public class ServerAction {
 	
 	// to subscribe Symbol and send result to client and after process end return 1 // client
 	public int SubscribeItem(Socket soc) {
-		
+		loadDataFromDatabase();
 		int sFlg = 0, upSymflg = 0;
 		
 		try {
@@ -181,7 +230,7 @@ public class ServerAction {
 	// sent to the client and 
 	// after process return 1
 	public int subItemWithDetails(Socket soc) {
-		
+		loadDataFromDatabase();
 		int flg = 0;
 		//Item theItem = new Item("Empty", 0, 0);
 		List<Item> symDtaList = new ArrayList<>();
@@ -225,13 +274,17 @@ public class ServerAction {
 	// get symbol with price and profit Item List and 
 	// return Item list
 	private List<Item> getSymWithDataList(String uName) {
-		
+		loadDataFromDatabase();
 		List<Item> itmWithD = null;
 		
 		List<String> ItmLst = getSubSymList(uName);
 		
 		if(!ItmLst.isEmpty()) {
-			itmWithD = readcsv.getItmWuthD(ItmLst);
+			List<String> uppercaseItmLst = new ArrayList<>();
+		    for (String symbol : ItmLst) {
+		        uppercaseItmLst.add(symbol.toUpperCase());
+		    }
+		    itmWithD = readcsv.getItmWuthD(uppercaseItmLst);
 		}
 		
 		return itmWithD;
@@ -239,6 +292,7 @@ public class ServerAction {
 	
 	// get subscribe symbol list with given user name
 	private List<String> getSubSymList(String uName) {
+		loadDataFromDatabase();
 		
 		List<String> ItmLst = persubob.addOrRes(uName, "NOSYMBOL"); // get subscribed symbol list
 		return ItmLst;
@@ -248,7 +302,7 @@ public class ServerAction {
 	// get item details of given Symbol and send to client and 
 	//after end process return 1
 	public int checkAvaSym(Socket soc) {
-		
+		loadDataFromDatabase();
 		int sFlg = 0;
 		List<String> symlst = new ArrayList<>();
 		List<Item> itmlst   = new ArrayList<>();
@@ -289,7 +343,7 @@ public class ServerAction {
 	//send result to the client and 
 	//return 1 after process
 	public int makeBid(Socket soc) {
-		
+		loadDataFromDatabase();
 		int bflg = 0;
 		
 		try {
@@ -313,10 +367,9 @@ public class ServerAction {
 		
 		return bflg;
 	}
-	
 	// close given connection 
 	public void closeClientCon(Socket soc) {
-		
+		loadDataFromDatabase();
 		try {
 			in = new DataInputStream(new BufferedInputStream(soc.getInputStream()));
 		} catch (IOException e) {
@@ -341,7 +394,7 @@ public class ServerAction {
 	
 	// get user name from client (used in publisher subscriber process)
 	public String getClientUname(Socket soc) {
-		
+		loadDataFromDatabase();
 		try {
 			in = new DataInputStream(new BufferedInputStream(soc.getInputStream()));
 		} catch (IOException e) {
@@ -355,7 +408,7 @@ public class ServerAction {
 	
 	// get current time
 	public String time() {
-
+		loadDataFromDatabase();
 		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss"); 
 		LocalDateTime now = LocalDateTime.now();
 		return dtf.format(now);

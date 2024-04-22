@@ -54,7 +54,7 @@ public class ServerRunningGUI extends JFrame {
 		subPort = suPort;
 		sRunTime = sBisT;
 		
-		res = new ReadCsv(ServerRunningGUI.this); // read csv file and load
+		res = new ReadCsv(ServerRunningGUI.this); // read file and load
 		NeUObj.getLastpin(); // get last user ID
 		cmobj.getComLastpin(); // get last company user ID
 		
@@ -104,7 +104,6 @@ public class ServerRunningGUI extends JFrame {
 			JOptionPane.showMessageDialog(ServerRunningGUI.this, "Server Port Error.", "Connection Failed", JOptionPane.ERROR_MESSAGE);
 		}
 	}
-	
 	// set Item Table
 	public void setItemTable() {
 		fItmLst = res.getAllList();

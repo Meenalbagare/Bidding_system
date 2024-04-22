@@ -1,4 +1,10 @@
 package csv;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 //read stock.csv file
 //store in hash maps
@@ -9,7 +15,7 @@ import java.time.format.DateTimeFormatter;
 import java.io.BufferedReader;
 import java.util.Map;
 import java.util.Set;
-
+import serverGui.ServerRunningGUI;
 import readServerTxtFiles.CompanySubItem;
 import readServerTxtFiles.FileHandle;
 import readServerTxtFiles.PROupdateHandle;
@@ -24,12 +30,15 @@ import serverGui.ServerRunningGUI;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 
 public class ReadCsv {
 	
-	private String fpath = "doc\\stocks.csv";
+	private static final String url = "jdbc:postgresql://localhost:5432/test";
+	private static final String user = "postgres";
+	private static final String password = "1234";
 	ServerTimerRunnable stro = new ServerTimerRunnable();
 	
 	// if this is true a bid can be done, else bidding time is finished
@@ -38,42 +47,17 @@ public class ReadCsv {
 	
 	// to store and map CSV file data and mapping them with symbol
 	// Hash table used to thread safety
-	private static Map<String, String>  symPwdMap = new Hashtable<>(); //Symbol with security
-	private static Map<String, Float> symBidMap   = new Hashtable<>(); //Symbol with price
-	private static Map<String, Integer> symFunMap = new Hashtable<>(); //Symbol with profit
-	private static Map<String, String> symCusMap  = new Hashtable<>(); //Symbol with highest Bid customer
-	private static Map<String, String> symhBidTim = new Hashtable<>(); //Symbol with highest Bid Time
+	private Map<String, String> symPwdMap = new HashMap<>();
+	  private Map<String, Float> symBidMap = new HashMap<>();
+	  private Map<String, Integer> symFunMap = new HashMap<>();
+	  private Map<String, String> symCusMap = new HashMap<>(); // May not be used in this version
+	  private Map<String, String> symhBidTim = new HashMap<>(); //Symbol with highest Bid Time
 	
 	// read stock.csv file and store data in hash maps
 	public ReadCsv(ServerRunningGUI thesrg){
 		
 		srg = thesrg;
-		
-		int numCol = 4;
-		String line;
-		String[] value = new String[numCol];
-		
-		try {
-			FileReader f = new FileReader(fpath);
-			BufferedReader bf = new BufferedReader(f);
-			
-			bf.readLine(); //skip 1st row
-			while((line = bf.readLine()) != null) {
-				
-				value = line.split(",");
-				
-				symPwdMap.put(value[0], value[2]);
-				symBidMap.put(value[0], Float.parseFloat(value[1]));
-				symFunMap.put(value[0], Integer.parseInt(value[3]));	
-			}
-
-			bf.close();
-			f.close();
-		}
-		catch(Exception e) {
-			System.out.printf("%s : Cannot read the csv file \n", time());
-		}
-		
+		loadDataFromDatabase();
 	}
 	
 	// this constructor can be used to access methods in this class
@@ -92,7 +76,7 @@ public class ReadCsv {
 	// check whether the given symbol is valid 
 	//if yes return 1 , else return 0
 	public int checkSymble(String symbleN) {
-		
+		loadDataFromDatabase();
 		int cSflg =  0;
 		
 		if(symPwdMap.containsKey(symbleN)) {
@@ -108,23 +92,48 @@ public class ReadCsv {
 		
 		List<Item> symWithD = new ArrayList<>();
 		
-		for(int i = 0; i < symlst.size(); i++) {
-			String sym = symlst.get(i);
-			Item tmpTtem = new Item(sym, symBidMap.get(sym), symFunMap.get(sym));
-			symWithD.add(tmpTtem);
-		}
-		return symWithD;
+		for (String symbol : symlst) {
+			loadDataFromDatabase();
+	            if (symBidMap.containsKey(symbol) && symFunMap.containsKey(symbol)) {
+	            	symWithD.add(new Item(symbol, symBidMap.get(symbol), symFunMap.get(symbol)));
+	            } else {
+	                System.out.println("Data not found for symbol: " + symbol);
+	            }
+	        }
+	    
+	    return symWithD;
 	}
+	private void loadDataFromDatabase() {
+        try (Connection con = DriverManager.getConnection(url, user, password)) {
+            String sql = "SELECT \"Symbol\", \"Price\", \"Security\", \"Profit\" FROM stocks";
+            PreparedStatement stmt = con.prepareStatement(sql);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                String symbol = rs.getString("Symbol");
+                String security = rs.getString("Security");
+                float price = rs.getFloat("Price");
+                int profit = rs.getInt("Profit");
+
+                symPwdMap.put(symbol, security);
+                symBidMap.put(symbol, price);
+                symFunMap.put(symbol, profit);
+            }
+        } catch (Exception e) {
+            System.out.printf("%s : Cannot read the csv file \n", time());
+        }
+    }
 	
 	// invalid symbol = 0; less bid = 1; bidding time end = 2; success bid = 3
 	public synchronized int updateBidPrice(String uNam, String upSym, String price) {
-		
+		loadDataFromDatabase();
 		int flg = 0;
 		float pri = Float.parseFloat(price);
 		float prePri;
 		
 		if(biddStat) {
 			if(checkSymble(upSym) == 1) {
+				
 				prePri = symBidMap.get(upSym);
 				System.out.printf("%s : %s : Previous price [%s - %.2f]\n", time(), uNam,upSym, prePri);
 			
@@ -136,16 +145,35 @@ public class ReadCsv {
 					symCusMap.put(upSym, uNam);
 					symhBidTim.put(upSym, ct);
 					srg.setItemTable(); // server table update
-					SYMfileHandle symfho = new SYMfileHandle();
-					flg = symfho.updateSYM(upSym, uNam, prePri, pri, ct); // update file
-					System.out.printf("%s : %s : New price [%s - %.2f]\n", time(), uNam,upSym, symBidMap.get(upSym));
-				}
+					try (Connection con = DriverManager.getConnection(url, user, password)) {
+						con.setAutoCommit(true);
+	                    String sql = "UPDATE stocks SET \"Price\" = ? WHERE \"Symbol\" = ?";
+	                    PreparedStatement stmt = con.prepareStatement(sql);
+	                    stmt.setFloat(1, pri);
+	                    stmt.setString(2, upSym);
+	                    stmt.executeUpdate();
+	     
+	                    srg.setItemTable(); // server table update
+	                    // Call refreshGUI() method
+	                    int rowsAffected = stmt.executeUpdate();
+	                    
+	                    if (rowsAffected > 0) {
+	                        System.out.printf("%s : %s : New price [%s - %.2f]\n", time(), uNam, upSym, pri);
+	                    } else {
+	                        System.out.printf("%s : %s : No rows updated for symbol [%s]\n", time(), uNam, upSym);
+	                    }
+	                    
+	                } catch (SQLException e) {
+	                    e.printStackTrace();
+	                }}
 				else {
 					System.out.printf("%s : %s : [%s - %s] Invalid Bid\n", time(),uNam, upSym, price);
 					flg = 1;
 				}
 			}
 			else {
+				System.out.printf("%s : Server : [%d] Wrong symbol - Symbol: %s\n", time(), upSym);
+
 				System.out.printf("%s : %s : [%s] Invalid Symbol\n", time(),uNam, upSym);
 			}
 		}
@@ -165,6 +193,7 @@ public class ReadCsv {
 		int pro = Integer.parseInt(profit);
 		
 		if(checkSymble(upSym) == 1) {
+			loadDataFromDatabase();
 			if((symPwdMap.get(upSym)).equals(secCod)) {
 				System.out.printf("%s : %s : [%s] Valid security code\n", time(), uNam, secCod);
 				

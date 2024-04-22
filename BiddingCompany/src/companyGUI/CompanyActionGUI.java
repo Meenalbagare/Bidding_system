@@ -1,6 +1,16 @@
 package companyGUI;
 
 import javax.swing.JFrame;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
@@ -49,6 +59,18 @@ public class CompanyActionGUI extends JFrame {
 	private List<String> newSymbol = new ArrayList<>(); // new symbol list
 	private ComSubModels nsymMod = null; // to new symbol table
 	private CompanySupMethods csupIb = new CompanySupMethods();
+	private static final String url = "jdbc:postgresql://localhost:5432/test";
+	private static final String user = "postgres";
+	private static final String password = "1234";	
+	// if this is true a bid can be done, else bidding time is finished
+	private static boolean biddStat = true; 	
+	// to store and map CSV file data and mapping them with symbol
+	// Hash table used to thread safety
+	private Map<String, String> symPwdMap = new HashMap<>();
+	  private Map<String, Float> symBidMap = new HashMap<>();
+	  private Map<String, Integer> symFunMap = new HashMap<>();
+	  private Map<String, String> symCusMap = new HashMap<>(); // May not be used in this version
+	  private Map<String, String> symhBidTim = new HashMap<>(); //Symbol with highest Bid Time
 	
 	private int guiSynCntrl; // avoid interruption when same time call to methods
 	private JTextField newSymtextField;
@@ -443,7 +465,7 @@ public class CompanyActionGUI extends JFrame {
 	}
 	
 	private void createSymbolTable(Socket pSoc) {
-		symboles = comSubL.reqSbsList(pSoc); // get symbol list from server 
+		symboles = loadDataFromDatabase();
 		Collections.sort(symboles); // sort symbol list
 		submod = new ComSubModels(symboles); //create model of symbols for creating table
 		
@@ -506,4 +528,21 @@ public class CompanyActionGUI extends JFrame {
 		LocalDateTime now = LocalDateTime.now();
 		return dtf.format(now);
 	}	
+	private List<String> loadDataFromDatabase() {
+		List<String> symbolList = new ArrayList<>();
+        try (Connection con = DriverManager.getConnection(url, user, password)) {
+            String sql = "SELECT \"Symbol\" FROM stocks";
+            PreparedStatement stmt = con.prepareStatement(sql);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                String symbol = rs.getString("Symbol");
+                symbolList.add(symbol);
+                
+            }
+        } catch (Exception e) {
+            System.out.printf("%s : Cannot read the csv file \n", time());
+        }
+        return symbolList;
+    }
 }

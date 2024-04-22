@@ -345,7 +345,11 @@ public class ServerComAction {
 		List<String> ItmLst = getSubSymList(uName);
 		
 		if(!ItmLst.isEmpty()) {
-			itmWithD = readcsv.getItmWuthD(ItmLst);
+			List<String> uppercaseItmLst = new ArrayList<>();
+		    for (String symbol : ItmLst) {
+		        uppercaseItmLst.add(symbol.toUpperCase());
+		    }
+		    itmWithD = readcsv.getItmWuthD(uppercaseItmLst);
 		}
 		
 		return itmWithD;

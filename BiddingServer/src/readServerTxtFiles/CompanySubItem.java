@@ -83,8 +83,8 @@ public class CompanySubItem {
     {
     	int flag = 0;
     	List<String> set= new ArrayList<>();
-    	BufferedReader br = FileRead("txtFiles\\comSubscribedList.csv");
-    	PrintWriter rw = FileWrite("txtFiles\\List3.csv");
+    	BufferedReader br = FileRead("txtFiles/comSubscribedList.csv");
+    	PrintWriter rw = FileWrite("txtFiles/List3.csv");
     	String line;
     	String re = "";
     	
@@ -125,8 +125,8 @@ public class CompanySubItem {
     {
     	int flag1 = 0, flag2 = 0, flag3 = 0;
     	
-    	File f1 = new File("txtFiles\\comSubscribedList.csv");
-    	File f2 = new File("txtFiles\\List3.csv");
+    	File f1 = new File("txtFiles/comSubscribedList.csv");
+    	File f2 = new File("txtFiles/List3.csv");
     	if(f1.delete()) {
     		flag1 = 1;
     	}
@@ -147,7 +147,7 @@ public class CompanySubItem {
     // read csv and get subscribed symbols and return as a list
     private List<String> getSubSymWithData(String uname) {
     	
-    	BufferedReader br = FileRead("txtFiles\\comSubscribedList.csv");
+    	BufferedReader br = FileRead("txtFiles/comSubscribedList.csv");
     	String line;
     	List<String> userSubLst = new ArrayList();
     	
@@ -178,7 +178,7 @@ public class CompanySubItem {
     //this method return user Name list related to given Symbol
     private List<String> getSubUnameList(String sym){
     	
-    	BufferedReader br = FileRead("txtFiles\\comSubscribedList.csv");
+    	BufferedReader br = FileRead("txtFiles/comSubscribedList.csv");
     	String line;
     	List<String> userLst = new ArrayList();
     	

@@ -5,7 +5,7 @@ import java.util.Scanner;
 
 public class TraderDataTxt {
 
-	private String fpath = "txtFiles\\useDetTxt.txt";
+	private String fpath = "txtFiles/useDetTxt.txt";
 	
 	// call to add new user or confirm the current user identity
 	// if val3 = 1 confirm user - dealWithTraderTxt(user name, password, 1)

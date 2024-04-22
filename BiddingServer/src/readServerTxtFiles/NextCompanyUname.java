@@ -12,7 +12,7 @@ import java.util.Scanner;
 */
 public class NextCompanyUname {
 	
-	String ProDataF = "txtFiles\\companyDataTxt.txt";
+	String ProDataF = "txtFiles/companyDataTxt.txt";
 	FileHandle fobj = new FileHandle();
 	
 	private String ppin= "";

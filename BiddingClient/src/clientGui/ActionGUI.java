@@ -9,6 +9,12 @@ package clientGui;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 import client.SubProcessRunnable;
 import client.SubscribeList;
@@ -23,7 +29,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.awt.event.ActionEvent;
 import javax.swing.JTextField;
 import javax.swing.JLabel;
@@ -52,6 +60,19 @@ public class ActionGUI extends JFrame {
 	private JTable table_1;
 	private JTextField bidSymtextField;
 	private JTextField pricetextField;
+	private static final String url = "jdbc:postgresql://localhost:5432/test";
+	private static final String user = "postgres";
+	private static final String password = "1234";	
+	// if this is true a bid can be done, else bidding time is finished
+	private static boolean biddStat = true; 	
+	// to store and map CSV file data and mapping them with symbol
+	// Hash table used to thread safety
+	private Map<String, String> symPwdMap = new HashMap<>();
+	  private Map<String, Float> symBidMap = new HashMap<>();
+	  private Map<String, Integer> symFunMap = new HashMap<>();
+	  private Map<String, String> symCusMap = new HashMap<>(); // May not be used in this version
+	  private Map<String, String> symhBidTim = new HashMap<>(); //Symbol with highest Bid Time
+	
 	
 	private int guiSynCntrl; // avoid interruption when same time call multiple methods
 	private JTable table_2;
@@ -276,11 +297,7 @@ public class ActionGUI extends JFrame {
 						try {
 							int bidflg = sublst.bidOnItem(cSoc, uName, bidSymtextField.getText(), pricetextField.getText());
 							
-							if(bidflg == 0) {
-								System.out.printf("%s : Server : [0] Wrong symbol\n", time());
-								JOptionPane.showMessageDialog(ActionGUI.this, "Wrong Symbol : " + bidSymtextField.getText(), "Wrong Symbol", JOptionPane.ERROR_MESSAGE);
-							}
-							else if(bidflg == 1) {
+							if(bidflg == 1) {
 								System.out.printf("%s : Server : [1] Bid is less than current max bid\n", time());
 								JOptionPane.showMessageDialog(ActionGUI.this, bidSymtextField.getText() + " Your Bid Is less then Current max bid", "Bidding Failed", JOptionPane.ERROR_MESSAGE);
 							}
@@ -336,13 +353,15 @@ public class ActionGUI extends JFrame {
 	}
 	
 	private void createSymbolTable(Socket pSoc) {
-		symboles = sublst.reqSbsList(pSoc); // get symbol list from server 
+		
+		symboles = loadDataFromDatabase();
 		Collections.sort(symboles); // sort symbol list
 		submod = new SubscriberListModel(symboles); //create model of symbols for create table
 		
 	}
 	
 	public synchronized void createITMTablemodel(Socket pSoc) {
+		loadDataFromDatabase();
 		itmLst = sublst.getAlrdySubItemWithDitail(pSoc, uName); // get already subscribed Symbol list with it's details from server
 		itmmodl = new ItemModel(itmLst); // set model
 		setSubTable(itmmodl);
@@ -350,6 +369,7 @@ public class ActionGUI extends JFrame {
 	
 	// update table for price update
 	public void createPUpdateTable(String sym, String npr) {
+		loadDataFromDatabase();
 		List<Item> itLst = sublst.getPriceUpdateItemWithD(sym, npr);
 		ItemModel tl = new ItemModel(itLst);
 		setSubTable(tl);
@@ -357,6 +377,7 @@ public class ActionGUI extends JFrame {
 	
 	// update table for profit update
 	public void createProUpdateTable(String sym, String npro) {
+		loadDataFromDatabase();
 		List<Item> itLst = sublst.getProUpdateItemWithD(sym, npro);
 		ItemModel tl = new ItemModel(itLst);
 		setSubTable(tl);
@@ -364,6 +385,7 @@ public class ActionGUI extends JFrame {
 	
 	// update symbol table
 	public void createNewSymTable(String sym) {
+		loadDataFromDatabase();
 		symboles = sublst.getUpdateStringList(sym);
 		submod = new SubscriberListModel(symboles); //create model of symbols to create table
 		setSymTable(submod);
@@ -371,6 +393,7 @@ public class ActionGUI extends JFrame {
 	
 	// create new symbol and refresh
 	public void newSymbolTable(String symbol) {
+		loadDataFromDatabase();
 		newSymbol.add(symbol);
 		nsymMod = new SubscriberListModel(newSymbol);
 		setNewSymTable(nsymMod);
@@ -397,6 +420,25 @@ public class ActionGUI extends JFrame {
 		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss"); 
 		LocalDateTime now = LocalDateTime.now();
 		return dtf.format(now);
+	
 	}
+	private List<String> loadDataFromDatabase() {
+		List<String> symbolList = new ArrayList<>();
+        try (Connection con = DriverManager.getConnection(url, user, password)) {
+            String sql = "SELECT \"Symbol\" FROM stocks";
+            PreparedStatement stmt = con.prepareStatement(sql);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                String symbol = rs.getString("Symbol");
+                symbolList.add(symbol);
+                
+            }
+        } catch (Exception e) {
+            System.out.printf("%s : Cannot read the csv file \n", time());
+        }
+        return symbolList;
+    }
+	
 	
 }

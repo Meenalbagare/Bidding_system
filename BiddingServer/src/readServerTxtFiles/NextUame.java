@@ -13,7 +13,7 @@ import java.util.Scanner;
 
 public class NextUame {
 	
-	String ProDataF = "txtFiles\\useDetTxt.txt";
+	String ProDataF = "txtFiles/useDetTxt.txt";
 	FileHandle fobj = new FileHandle();
 	
 	private String ppin= "";
